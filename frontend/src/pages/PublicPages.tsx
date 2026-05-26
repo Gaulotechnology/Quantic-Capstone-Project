@@ -125,23 +125,35 @@ export const ExclusiveRolesPage: React.FC = () => {
         </Grid>
         
         <Grid size={{ xs: 12, md: 4 }}>
-          <Card sx={{ bgcolor: '#1B2A4A', color: '#fff', borderRadius: 4, p: 2 }}>
+          <Card 
+            sx={{ 
+              borderRadius: 4, 
+              p: 2.5,
+              background: `
+                radial-gradient(ellipse 60% 40% at 80% 80%, ${alpha('#CD6DBB', 0.04)} 0%, transparent 60%),
+                radial-gradient(ellipse 40% 30% at 20% 20%, ${alpha('#7EC845', 0.05)} 0%, transparent 60%),
+                linear-gradient(135deg, #F8FAFC 0%, #FFFFFF 100%)
+              `,
+              border: '1px solid rgba(27, 42, 74, 0.06)',
+              boxShadow: '0 20px 40px rgba(27, 42, 74, 0.04)'
+            }}
+          >
             <CardContent>
-              <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>Mandate Statistics</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, mb: 3, color: '#1B2A4A' }}>Mandate Statistics</Typography>
               <Stack spacing={2.5}>
                 <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 900, color: '#7EC845' }}>85%</Typography>
-                  <Typography variant="caption" sx={{ opacity: 0.7 }}>Unadvertised Roles</Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 900, color: 'primary.main' }}>85%</Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Unadvertised Roles</Typography>
                 </Box>
-                <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
+                <Divider sx={{ borderColor: 'rgba(27,42,74,0.06)' }} />
                 <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 900, color: '#7EC845' }}>12 Days</Typography>
-                  <Typography variant="caption" sx={{ opacity: 0.7 }}>Average Time to Shortlist</Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 900, color: 'primary.main' }}>12 Days</Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Average Time to Shortlist</Typography>
                 </Box>
-                <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
+                <Divider sx={{ borderColor: 'rgba(27,42,74,0.06)' }} />
                 <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 900, color: '#7EC845' }}>Executive</Typography>
-                  <Typography variant="caption" sx={{ opacity: 0.7 }}>Level focus across Tech, Finance & Mining</Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 900, color: 'primary.main' }}>Executive</Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Level focus across Tech, Finance & Mining</Typography>
                 </Box>
               </Stack>
             </CardContent>
@@ -228,12 +240,39 @@ export const PartnerWithUsPage: React.FC = () => (
       </Grid>
     </Box>
 
-    <Box sx={{ p: 6, bgcolor: '#1B2A4A', borderRadius: 6, color: '#fff', textAlign: 'center' }}>
-      <Typography variant="h4" sx={{ fontWeight: 800, mb: 3 }}>Start a Conversation</Typography>
-      <Typography variant="body1" sx={{ opacity: 0.8, mb: 5, maxWidth: 600, mx: 'auto' }}>
+    <Box 
+      sx={{ 
+        p: 6, 
+        background: `
+          radial-gradient(ellipse 60% 40% at 80% 80%, ${alpha('#CD6DBB', 0.04)} 0%, transparent 60%),
+          radial-gradient(ellipse 40% 30% at 20% 20%, ${alpha('#7EC845', 0.05)} 0%, transparent 60%),
+          linear-gradient(135deg, #F8FAFC 0%, #FFFFFF 100%)
+        `, 
+        borderRadius: 6, 
+        color: '#1B2A4A', 
+        textAlign: 'center',
+        border: '1px solid rgba(27, 42, 74, 0.06)',
+        boxShadow: '0 20px 40px rgba(27, 42, 74, 0.04)'
+      }}
+    >
+      <Typography variant="h4" sx={{ fontWeight: 900, mb: 3, color: '#1B2A4A' }}>Start a Conversation</Typography>
+      <Typography variant="body1" sx={{ color: 'text.secondary', mb: 5, maxWidth: 600, mx: 'auto', lineHeight: 1.6 }}>
         Ready to redefine your talent acquisition? Contact our lead consultants to discuss a tailored partnership.
       </Typography>
-      <Button variant="contained" size="large" sx={{ px: 8, py: 2, borderRadius: 3, bgcolor: '#7EC845', fontWeight: 800 }}>
+      <Button 
+        variant="contained" 
+        size="large" 
+        sx={{ 
+          px: 8, 
+          py: 2, 
+          borderRadius: 3, 
+          fontWeight: 800,
+          boxShadow: '0 8px 25px rgba(126, 200, 69, 0.3)',
+          '&:hover': {
+            boxShadow: '0 10px 28px rgba(126, 200, 69, 0.45)',
+          }
+        }}
+      >
         Contact the Consultancy
       </Button>
     </Box>
@@ -333,17 +372,30 @@ export const AboutPage: React.FC = () => (
         </Box>
       </Grid>
       <Grid size={{ xs: 12, md: 5 }}>
-        <Card sx={{ borderRadius: 6, bgcolor: '#1B2A4A', color: '#fff', p: 4 }}>
-          <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>Our Core Values</Typography>
+        <Card 
+          sx={{ 
+            borderRadius: 6, 
+            background: `
+              radial-gradient(ellipse 60% 40% at 80% 80%, ${alpha('#CD6DBB', 0.04)} 0%, transparent 60%),
+              radial-gradient(ellipse 40% 30% at 20% 20%, ${alpha('#7EC845', 0.05)} 0%, transparent 60%),
+              linear-gradient(135deg, #F8FAFC 0%, #FFFFFF 100%)
+            `,
+            color: 'text.primary', 
+            p: 4,
+            border: '1px solid rgba(27, 42, 74, 0.06)',
+            boxShadow: '0 20px 40px rgba(27, 42, 74, 0.04)'
+          }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: 800, mb: 3, color: '#1B2A4A' }}>Our Core Values</Typography>
           <Stack spacing={3}>
             {[
               { t: 'Integrity First', d: 'We provide honest feedback to candidates and clients, even when it is difficult.' },
-              { t: 'Data Over Hype', d: 'We use objective AI scores to validate our consultants intuition.' },
+              { t: 'Data Over Hype', d: 'We use objective AI scores to validate our consultants\' intuition.' },
               { t: 'African Excellence', d: 'We are committed to showcasing the absolute best talent our continent has to offer.' }
             ].map(v => (
               <Box key={v.t}>
-                <Typography variant="subtitle2" sx={{ color: '#7EC845', mb: 0.5 }}>{v.t}</Typography>
-                <Typography variant="body2" sx={{ opacity: 0.7 }}>{v.d}</Typography>
+                <Typography variant="subtitle2" sx={{ color: 'primary.main', mb: 0.5, fontWeight: 700 }}>{v.t}</Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>{v.d}</Typography>
               </Box>
             ))}
           </Stack>

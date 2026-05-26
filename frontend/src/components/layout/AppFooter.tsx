@@ -13,21 +13,16 @@ export const AppFooter: React.FC = () => {
         <Grid container spacing={8}>
           <Grid size={{ xs: 12, md: 5 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
-              <Box
-                sx={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: 2,
-                  background: 'linear-gradient(135deg, #7EC845 0%, #98D36A 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 4px 12px rgba(126, 200, 69, 0.2)',
-                }}
-              >
-                <Typography sx={{ color: '#fff', fontWeight: 900, fontSize: 24, lineHeight: 1 }}>T</Typography>
-              </Box>
-              <Typography variant="h5" sx={{ color: '#fff', fontWeight: 900, letterSpacing: '-0.02em' }}>Tumaini</Typography>
+              <Box 
+                component="img" 
+                src="/logo.png" 
+                alt="Tumaini AI" 
+                sx={{ 
+                  height: 42, 
+                  display: 'block',
+                  filter: 'brightness(0) invert(1)'
+                }} 
+              />
             </Box>
             <Typography variant="body2" sx={{ lineHeight: 1.8, maxWidth: 400 }}>
               Tumaini is Africa's leading recruitment consultancy, combining deep industry expertise with 
