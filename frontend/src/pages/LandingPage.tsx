@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Box, Typography, Button, Card, CardContent, Grid, Chip, Stack,
   Container, CircularProgress, alpha, Divider, Avatar,
-  Tooltip,
+  Tooltip, TextField, InputAdornment, MenuItem,
 } from '@mui/material';
 import {
   Work as WorkIcon, People as PeopleIcon,
@@ -10,6 +10,7 @@ import {
   LocationOn, ArrowForward,
   AutoGraph as AutoGraphIcon, 
   Public as PublicIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { jobApi } from '../api/jobs';
@@ -52,6 +53,16 @@ export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchSector, setSearchSector] = useState('');
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const params = new URLSearchParams();
+    if (searchQuery) params.append('search', searchQuery);
+    if (searchSector) params.append('sector', searchSector);
+    navigate(`/jobs?${params.toString()}`);
+  };
 
   useEffect(() => {
     jobApi.getJobs({ status: 'OPEN', limit: 6 })
@@ -174,6 +185,86 @@ export const LandingPage: React.FC = () => {
                     We are Africa's premier recruitment consultancy, blending sophisticated AI 
                     with executive advisory to place top technical talent across the globe. Fast, fair, and data-driven.
                   </Typography>
+                  
+                  {/* Sourcing Search Capsule */}
+                  <Card 
+                    elevation={0}
+                    sx={{ 
+                      p: 1, 
+                      borderRadius: 4, 
+                      bgcolor: '#ffffff',
+                      border: '1px solid rgba(27, 42, 74, 0.08)',
+                      boxShadow: '0 20px 40px rgba(27, 42, 74, 0.04), 0 1px 3px rgba(27, 42, 74, 0.02)',
+                      mb: 5,
+                      maxWidth: 580,
+                    }}
+                  >
+                    <Grid container spacing={1} sx={{ alignItems: "center" }}>
+                      <Grid size={{ xs: 12, sm: 6.5 }}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          placeholder="Job title, key skills..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          slotProps={{
+                            input: {
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <SearchIcon sx={{ color: 'primary.main', fontSize: 20 }} />
+                                </InputAdornment>
+                              ),
+                              sx: { 
+                                '& fieldset': { border: 'none' },
+                                px: 1
+                              }
+                            }
+                          }}
+                        />
+                      </Grid>
+                      
+                      <Grid size={{ xs: 12, sm: 5.5 }} sx={{ display: 'flex', gap: 1 }}>
+                        <TextField
+                          select
+                          fullWidth
+                          size="small"
+                          label="Sector"
+                          value={searchSector}
+                          onChange={(e) => setSearchSector(e.target.value)}
+                          slotProps={{
+                            input: {
+                              sx: { 
+                                '& fieldset': { border: 'none' }
+                              }
+                            }
+                          }}
+                        >
+                          <MenuItem value="">All Sectors</MenuItem>
+                          {['Engineering', 'Finance', 'IT', 'Medical', 'Mining', 'Supply Chain', 'Trade & Technical', 'Hospitality'].map(s => (
+                            <MenuItem key={s} value={s}>{s}</MenuItem>
+                          ))}
+                        </TextField>
+                        
+                        <Button
+                          variant="contained"
+                          onClick={handleSearch}
+                          sx={{ 
+                            px: 3, 
+                            py: 1.2, 
+                            borderRadius: 2.5, 
+                            minWidth: 'auto',
+                            boxShadow: '0 4px 14px rgba(126,200,69,0.3)',
+                            '&:hover': {
+                              boxShadow: '0 6px 18px rgba(126,200,69,0.4)',
+                              bgcolor: 'primary.light'
+                            }
+                          }}
+                        >
+                          <SearchIcon sx={{ fontSize: 20 }} />
+                        </Button>
+                      </Grid>
+                    </Grid>
+                  </Card>
                   
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2.5}>
                     <Button 

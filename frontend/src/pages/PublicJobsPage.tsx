@@ -8,7 +8,7 @@ import {
   LocationOn, ArrowForward, Work as WorkIcon, 
   Search as SearchIcon, FilterList as FilterIcon 
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { jobApi } from '../api/jobs';
 import type { Job } from '../types';
 import { LandingNav } from '../components/layout/LandingNav';
@@ -19,9 +19,10 @@ const ACCENTS = ['#7EC845', '#1B2A4A', '#7EC845', '#1B2A4A'];
 
 export const PublicJobsPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [search, setSearch] = useState('');
-  const [sector, setSector] = useState('');
+  const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [sector, setSector] = useState(searchParams.get('sector') || '');
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -54,6 +55,13 @@ export const PublicJobsPage: React.FC = () => {
   useEffect(() => {
     fetchJobs();
   }, [debouncedSearch, sector, page]);
+
+  useEffect(() => {
+    const params: Record<string, string> = {};
+    if (search) params.search = search;
+    if (sector) params.sector = sector;
+    setSearchParams(params, { replace: true });
+  }, [search, sector]);
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#F8F9FC' }}>
