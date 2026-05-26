@@ -106,23 +106,21 @@ export const AppLayout: React.FC = () => {
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Box
         sx={{
-          py: 3,
+          py: 2.5,
           px: 2.5,
           display: 'flex',
           alignItems: 'center',
           gap: 1.5,
-          background: `linear-gradient(135deg, ${alpha(theme.palette.secondary.dark, 0.95)} 0%, ${alpha(theme.palette.secondary.main, 0.9)} 100%)`,
-          borderBottom: `1px solid ${alpha('#FFFFFF', 0.08)}`,
+          background: '#FFFFFF',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer' }} onClick={() => navigate('/')}>
-          <Box sx={{ width: 34, height: 34, borderRadius: 1.5, background: 'linear-gradient(135deg, #7EC845 0%, #98D36A 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Typography sx={{ color: '#fff', fontWeight: 900, fontSize: 20 }}>T</Typography>
-          </Box>
-          <Typography variant="h6" sx={{ color: '#fff', fontWeight: 900, letterSpacing: '-0.02em' }}>Tumaini AI</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => navigate('/')}>
+          <Box component="img" src="/logo.png" alt="Tumaini AI" sx={{ height: 42, display: 'block' }} />
         </Box>
         {isMobile && (
-          <IconButton onClick={handleDrawerToggle} sx={{ ml: 'auto', color: 'rgba(255,255,255,0.6)' }}>
+          <IconButton onClick={handleDrawerToggle} sx={{ ml: 'auto', color: 'text.secondary' }}>
             <ChevronLeftIcon />
           </IconButton>
         )}

@@ -112,24 +112,7 @@ export const ForgotPasswordPage: React.FC = () => {
       >
         <CardContent sx={{ p: { xs: 3, sm: 5 } }}>
           <Box sx={{ textAlign: 'center', mb: 3 }}>
-            <Box
-              sx={{
-                width: 56,
-                height: 56,
-                borderRadius: 3,
-                background: 'linear-gradient(135deg, #7EC845 0%, #FF9A6C 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mx: 'auto',
-                mb: 2.5,
-                boxShadow: '0 8px 24px rgba(255, 107, 53, 0.35)',
-              }}
-            >
-              <Typography sx={{ fontSize: 26, fontWeight: 800, color: '#fff', lineHeight: 1 }}>
-                T
-              </Typography>
-            </Box>
+            <Box component="img" src="/logo.png" alt="Tumaini AI" sx={{ height: 56, mx: 'auto', mb: 2.5, display: 'block' }} />
             <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
               Reset Password
             </Typography>

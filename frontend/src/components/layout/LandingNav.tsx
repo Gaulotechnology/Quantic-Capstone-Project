@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  AppBar, Box, Toolbar, Button, Container, IconButton, Typography,
+  AppBar, Box, Toolbar, Button, Container, IconButton,
   Drawer, List, ListItem, useScrollTrigger, alpha, Stack, Divider,
 } from '@mui/material';
 import { Menu as MenuIcon } from '@mui/icons-material';
@@ -32,11 +32,8 @@ export const LandingNav: React.FC = () => {
         }}>
         <Container maxWidth="lg">
           <Toolbar disableGutters sx={{ justifyContent: 'space-between', minHeight: '70px !important' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: 1.5 }} onClick={() => navigate('/')}>
-              <Box sx={{ width: 34, height: 34, borderRadius: 1.5, background: 'linear-gradient(135deg, #7EC845 0%, #98D36A 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Typography sx={{ color: '#fff', fontWeight: 900, fontSize: 20 }}>T</Typography>
-              </Box>
-              <Typography variant="h6" sx={{ color: 'inherit', fontWeight: 900, letterSpacing: '-0.02em' }}>Tumaini AI</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => navigate('/')}>
+              <Box component="img" src="/logo.png" alt="Tumaini AI" sx={{ height: 48, display: 'block' }} />
             </Box>
             <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1 }}>
               {menuItems.map(item => (
@@ -65,7 +62,7 @@ export const LandingNav: React.FC = () => {
 
       <Drawer anchor="right" open={mobileOpen} onClose={() => setMobileOpen(false)} slotProps={{ paper: { sx: { width: 280 } } }}>
         <Box sx={{ p: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 900, mb: 3 }}>Tumaini AI</Typography>
+          <Box component="img" src="/logo.png" alt="Tumaini AI" sx={{ height: 32, mb: 3, display: 'block' }} />
           <List>
             {menuItems.map(item => (
               <ListItem key={item.text} disablePadding onClick={() => { navigate(item.path); setMobileOpen(false); }}>
