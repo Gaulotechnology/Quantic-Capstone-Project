@@ -626,14 +626,18 @@ export const LandingPage: React.FC = () => {
             <Box 
               sx={{ 
                 p: { xs: 6, md: 10 }, 
-                background: 'linear-gradient(135deg, #1B2A4A 0%, #0D1B2A 100%)', 
+                background: `
+                  radial-gradient(ellipse 60% 40% at 80% 80%, ${alpha('#CD6DBB', 0.04)} 0%, transparent 60%),
+                  radial-gradient(ellipse 40% 30% at 20% 20%, ${alpha('#7EC845', 0.05)} 0%, transparent 60%),
+                  linear-gradient(135deg, #F8FAFC 0%, #FFFFFF 100%)
+                `, 
                 borderRadius: 7, 
-                color: '#ffffff', 
+                color: '#1B2A4A', 
                 textAlign: 'center',
                 position: 'relative',
                 overflow: 'hidden',
-                boxShadow: '0 30px 60px -15px rgba(13, 27, 42, 0.3)',
-                border: '1px solid rgba(255, 255, 255, 0.05)'
+                boxShadow: '0 30px 60px -15px rgba(27, 42, 74, 0.08)',
+                border: '1px solid rgba(27, 42, 74, 0.06)'
               }}
             >
               {/* Internal neon ambient glow orbs */}
@@ -643,7 +647,7 @@ export const LandingPage: React.FC = () => {
                   width: 250,
                   height: 250,
                   borderRadius: '50%',
-                  background: `radial-gradient(circle, ${alpha('#7EC845', 0.15)} 0%, transparent 70%)`,
+                  background: `radial-gradient(circle, ${alpha('#7EC845', 0.08)} 0%, transparent 70%)`,
                   top: '-10%',
                   right: '-5%',
                   pointerEvents: 'none'
@@ -655,7 +659,7 @@ export const LandingPage: React.FC = () => {
                   width: 200,
                   height: 200,
                   borderRadius: '50%',
-                  background: `radial-gradient(circle, ${alpha('#CD6DBB', 0.12)} 0%, transparent 70%)`,
+                  background: `radial-gradient(circle, ${alpha('#CD6DBB', 0.06)} 0%, transparent 70%)`,
                   bottom: '-10%',
                   left: '-5%',
                   pointerEvents: 'none'
@@ -676,7 +680,8 @@ export const LandingPage: React.FC = () => {
                     mb: 3, 
                     letterSpacing: '-0.03em', 
                     fontSize: { xs: '2.2rem', md: '3.2rem' },
-                    lineHeight: 1.15
+                    lineHeight: 1.15,
+                    color: '#1B2A4A'
                   }}
                 >
                   Ready to Build Your Dream Team?
@@ -684,7 +689,7 @@ export const LandingPage: React.FC = () => {
                 <Typography 
                   variant="h6" 
                   sx={{ 
-                    color: 'rgba(255, 255, 255, 0.75)', 
+                    color: 'text.secondary', 
                     mb: 6, 
                     fontWeight: 400, 
                     maxWidth: 600, 
@@ -710,10 +715,10 @@ export const LandingPage: React.FC = () => {
                       borderRadius: 3, 
                       fontSize: '1rem', 
                       fontWeight: 800,
-                      boxShadow: '0 8px 25px rgba(126, 200, 69, 0.4)',
+                      boxShadow: '0 8px 25px rgba(126, 200, 69, 0.3)',
                       '&:hover': {
                         transform: 'translateY(-2px)',
-                        boxShadow: '0 10px 28px rgba(126, 200, 69, 0.55)',
+                        boxShadow: '0 10px 28px rgba(126, 200, 69, 0.45)',
                       }
                     }}
                   >
@@ -729,13 +734,13 @@ export const LandingPage: React.FC = () => {
                       borderRadius: 3, 
                       fontSize: '1rem', 
                       fontWeight: 800,
-                      borderColor: '#ffffff',
-                      color: '#ffffff',
+                      borderColor: 'secondary.main',
+                      color: 'secondary.main',
                       borderWidth: '1.5px',
                       '&:hover': {
                         borderWidth: '1.5px',
-                        borderColor: '#ffffff',
-                        bgcolor: 'rgba(255, 255, 255, 0.08)',
+                        borderColor: 'secondary.main',
+                        bgcolor: alpha('#1B2A4A', 0.04),
                         transform: 'translateY(-2px)',
                       }
                     }}
