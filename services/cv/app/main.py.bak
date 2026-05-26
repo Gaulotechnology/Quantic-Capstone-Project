@@ -1,0 +1,40 @@
+from tumaini_shared.api.app import create_app
+
+app = create_app(
+    title="CV Service",
+    description=(
+        "Handles CV file upload (PDF, DOCX, TXT) to AWS S3, "
+        "text extraction with OCR fallback, and NER-based candidate information parsing."
+    ),
+)
+
+
+@app.get("/health", tags=["ops"])
+async def health() -> dict:
+    return {"status": "ok", "service": "cv"}
+
+
+# ── Stub CV endpoints (prevents 404 in frontend during early dev) ──────
+
+@app.get("/api/cvs/me", tags=["cvs"])
+async def get_my_cvs() -> list:
+    """Return current user's uploaded CVs (stub)."""
+    return []
+
+
+@app.get("/api/cvs/{cv_id}", tags=["cvs"])
+async def get_cv(cv_id: str) -> dict:
+    """Return a single CV by ID (stub)."""
+    return {"id": cv_id, "status": "UPLOADED", "file_name": "demo.pdf"}
+
+
+@app.post("/api/cvs/upload", tags=["cvs"])
+async def upload_cv() -> dict:
+    """Upload a single CV file (stub)."""
+    return {"id": "cv-stub-001", "status": "UPLOADED", "file_name": "demo.pdf"}
+
+
+@app.post("/api/cvs/bulk-upload", tags=["cvs"])
+async def bulk_upload_cvs() -> list:
+    """Bulk upload multiple CV files (stub)."""
+    return [{"id": "cv-stub-001", "status": "UPLOADED", "file_name": "demo.pdf"}]
