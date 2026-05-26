@@ -154,9 +154,7 @@ export const LandingPage: React.FC = () => {
                     <Box 
                       component="span" 
                       sx={{ 
-                        background: 'linear-gradient(135deg, #7EC845 0%, #2D4A6F 100%)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
+                        color: 'primary.main',
                         display: 'inline-block'
                       }}
                     >
