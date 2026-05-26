@@ -40,7 +40,7 @@ import {
 import { useAppDispatch, useAppSelector } from '../../hooks/useAppStore';
 import { logout } from '../../store/slices/authSlice';
 import { shortlistApi } from '../../api/matching';
-import { AppFooter } from './AppFooter';
+
 
 const DRAWER_WIDTH = 270;
 
@@ -369,11 +369,6 @@ export const AppLayout: React.FC = () => {
             <Outlet />
           </Box>
         </Box>
-      </Box>
-
-      {/* Footer Section */}
-      <Box sx={{ ml: { md: `${DRAWER_WIDTH}px` }, width: { md: `calc(100% - ${DRAWER_WIDTH}px)` } }}>
-        <AppFooter />
       </Box>
     </Box>
   );
