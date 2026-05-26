@@ -31,11 +31,12 @@ export const CookieConsent: React.FC = () => {
           width: { xs: '100%', sm: 400 },
           p: 3,
           borderRadius: { xs: 0, sm: 4 },
-          bgcolor: 'rgba(27, 42, 74, 0.95)',
+          bgcolor: 'rgba(255, 255, 255, 0.95)',
           backdropFilter: 'blur(10px)',
-          color: '#fff',
+          color: 'text.primary',
           zIndex: 3000,
-          border: '1px solid rgba(255,255,255,0.1)',
+          border: '1px solid rgba(0, 0, 0, 0.05)',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.06)',
         }}
       >
         <Stack spacing={2}>
@@ -43,7 +44,7 @@ export const CookieConsent: React.FC = () => {
             <SecurityIcon sx={{ color: '#7EC845' }} />
             <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Privacy Preference</Typography>
           </Box>
-          <Typography variant="body2" sx={{ opacity: 0.8, lineHeight: 1.6 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>
             We use cookies to enhance your experience and analyze our traffic in accordance with our Privacy Policy.
           </Typography>
           <Stack direction="row" spacing={2} sx={{ pt: 1 }}>
@@ -59,7 +60,7 @@ export const CookieConsent: React.FC = () => {
               fullWidth 
               variant="outlined" 
               onClick={() => setOpen(false)}
-              sx={{ color: '#fff', borderColor: 'rgba(255,255,255,0.3)', '&:hover': { borderColor: '#fff' }, fontWeight: 700, borderRadius: 2 }}
+              sx={{ color: 'text.primary', borderColor: 'rgba(0,0,0,0.15)', '&:hover': { borderColor: 'text.primary', bgcolor: 'rgba(0,0,0,0.02)' }, fontWeight: 700, borderRadius: 2 }}
             >
               Settings
             </Button>
