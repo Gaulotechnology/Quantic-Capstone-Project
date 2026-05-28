@@ -33,7 +33,10 @@ const SUGGESTIONS = [
 ];
 
 export const RecruiterChat: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const saved = localStorage.getItem('tumaini_recruiter_chat');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -42,6 +45,9 @@ export const RecruiterChat: React.FC = () => {
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isThinking]);
   useEffect(() => { inputRef.current?.focus(); }, []);
+  useEffect(() => {
+    localStorage.setItem('tumaini_recruiter_chat', JSON.stringify(messages));
+  }, [messages]);
 
   const handleSend = async () => {
     const q = input.trim();
@@ -65,11 +71,25 @@ export const RecruiterChat: React.FC = () => {
   const handleShortlist = async (c: SearchResult) => {
     try {
       const lists = await shortlistApi.getShortlists();
-      const listId = lists.length > 0 ? lists[0].id : (await shortlistApi.createShortlist('AI Chat Picks')).id;
+      let listId: string;
+      const targetName = 'AI Chat Picks';
+      
+      const existing = lists.find(l => l.name === targetName);
+      if (existing) {
+        listId = existing.id;
+      } else {
+        const created = await shortlistApi.createShortlist(targetName);
+        listId = created.id;
+      }
+      
       await shortlistApi.addCandidate(listId, c.candidate_id, c.name, c.score, c.matched_skills);
       setToast(`${c.name} added to shortlist`);
       setTimeout(() => setToast(null), 2500);
-    } catch { /* silent */ }
+    } catch (err) {
+      console.error("Failed to add candidate to shortlist:", err);
+      setToast("Failed to add candidate to shortlist");
+      setTimeout(() => setToast(null), 2500);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
