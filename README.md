@@ -310,3 +310,23 @@ Logo: `frontend/public/logo.png` — extracted from `Tumaini-Logo_Main-.png`
 ## Team
 
 Built for the Quantic Final Project — Master's Dissertation in AI-Powered Recruitment Systems.
+
+---
+
+## Hetzner Cloud Production Deployment
+
+The project includes an automated, production-hardened deployment setup for **Hetzner Cloud VPS (Ubuntu 24.04)** located inside the `deploy/` directory.
+
+### Production Files Created:
+1.  **`deploy/cloud-config.yaml`:** Automatically installs Docker, Caddy, and UFW firewalls during Hetzner's server first boot.
+2.  **`deploy/docker-compose.prod.yml`:** A hardened configuration that closes all database ports to the outside world, binding them securely to localhost.
+3.  **`deploy/Caddyfile`:** Acts as the secure API Gateway on port 80/443, routing traffic to the frontend and proxying `/api/*` endpoints to the correct microservice containers.
+4.  **`deploy/launch.sh`:** A single-command deployment script that pulls your changes, builds containers, runs migrations, and seeds the admin database automatically.
+
+### Deploying Your Updates in One Step:
+Once logged into your server, navigate to the project directory and run the automated launch script:
+```bash
+./deploy/launch.sh
+```
+This automatically manages container rebuilds, handles subfolder `.env` positions, applies Caddy configs, runs Alembic migrations, and seeds the `admin@tumaini.ai` superuser account.
+
