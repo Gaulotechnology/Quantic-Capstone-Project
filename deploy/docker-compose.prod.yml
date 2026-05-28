@@ -1,0 +1,261 @@
+name: tumaini-prod
+
+networks:
+  tumaini-network:
+    driver: bridge
+
+volumes:
+  identity-db-data:
+  cv-db-data:
+  vector-db-data:
+  matching-db-data:
+  job-db-data:
+  redis-data:
+  qdrant-data:
+  rabbitmq-data:
+
+x-postgres-env: &postgres-env
+  POSTGRES_USER: ${POSTGRES_USER:-tumaini}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD} # Enforced in prod env
+
+x-service-common: &service-common
+  build:
+    context: ..
+  restart: unless-stopped
+  networks:
+    - tumaini-network
+  env_file:
+    - ../.env
+
+services:
+
+  # -------------------------------------------------------------------------
+  # Infrastructure (All ports closed to public internet for security)
+  # -------------------------------------------------------------------------
+
+  identity-db:
+    image: postgres:15-alpine
+    environment:
+      <<: *postgres-env
+      POSTGRES_DB: auth_db
+    volumes:
+      - identity-db-data:/var/lib/postgresql/data
+    networks:
+      - tumaini-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tumaini} -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  cv-db:
+    image: postgres:15-alpine
+    environment:
+      <<: *postgres-env
+      POSTGRES_DB: cv_db
+    volumes:
+      - cv-db-data:/var/lib/postgresql/data
+    networks:
+      - tumaini-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tumaini} -d cv_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  vector-db:
+    image: postgres:15-alpine
+    environment:
+      <<: *postgres-env
+      POSTGRES_DB: vector_db
+    volumes:
+      - vector-db-data:/var/lib/postgresql/data
+    networks:
+      - tumaini-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tumaini} -d vector_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  matching-db:
+    image: postgres:15-alpine
+    environment:
+      <<: *postgres-env
+      POSTGRES_DB: matching_db
+    volumes:
+      - matching-db-data:/var/lib/postgresql/data
+    networks:
+      - tumaini-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tumaini} -d matching_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  job-db:
+    image: postgres:15-alpine
+    environment:
+      <<: *postgres-env
+      POSTGRES_DB: job_db
+    volumes:
+      - job-db-data:/var/lib/postgresql/data
+    networks:
+      - tumaini-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tumaini} -d job_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - tumaini-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:v1.9.2
+    volumes:
+      - qdrant-data:/qdrant/storage
+    networks:
+      - tumaini-network
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/6333'"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 10s
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - tumaini-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+  # -------------------------------------------------------------------------
+  # Microservices
+  # -------------------------------------------------------------------------
+
+  identity:
+    <<: *service-common
+    build:
+      context: ..
+      dockerfile: services/identity/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-tumaini}:${POSTGRES_PASSWORD}@identity-db:5432/auth_db
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+    ports:
+      - "127.0.0.1:8001:8000"
+    depends_on:
+      identity-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  cv:
+    <<: *service-common
+    build:
+      context: ..
+      dockerfile: services/cv/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-tumaini}:${POSTGRES_PASSWORD}@cv-db:5432/cv_db
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+    ports:
+      - "127.0.0.1:8002:8000"
+    depends_on:
+      cv-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  vector:
+    <<: *service-common
+    build:
+      context: ..
+      dockerfile: services/vector/Dockerfile
+    environment:
+      QDRANT_URL: http://qdrant:6333
+      REDIS_URL: redis://redis:6379/1
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+    ports:
+      - "127.0.0.1:8003:8000"
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  matching:
+    <<: *service-common
+    build:
+      context: ..
+      dockerfile: services/matching/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-tumaini}:${POSTGRES_PASSWORD}@matching-db:5432/matching_db
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.deepseek.com}
+      LLM_MODEL: ${LLM_MODEL:-deepseek-chat}
+      OLLAMA_BASE_URL: http://localhost:11434 # Binds to host's Ollama fallback
+    ports:
+      - "127.0.0.1:8004:8000"
+    depends_on:
+      matching-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  job:
+    <<: *service-common
+    build:
+      context: ..
+      dockerfile: services/job/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-tumaini}:${POSTGRES_PASSWORD}@job-db:5432/job_db
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+    ports:
+      - "127.0.0.1:8005:8000"
+    depends_on:
+      job-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ../frontend
+      args:
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL}
+    ports:
+      # Bound to localhost only so only Caddy on the host can access it
+      - "127.0.0.1:3009:80"
+    networks:
+      - tumaini-network
+    depends_on:
+      - identity
+      - cv
+      - vector
+      - matching
+      - job
