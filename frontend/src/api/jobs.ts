@@ -35,4 +35,11 @@ export const jobApi = {
   deleteJob: async (id: string): Promise<void> => {
     await apiClient.delete(`/api/jobs/${id}`);
   },
+
+  uploadDescription: async (formData: FormData): Promise<Partial<Job>> => {
+    const response = await apiClient.post('/api/jobs/upload-description', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
 };

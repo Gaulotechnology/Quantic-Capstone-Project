@@ -132,3 +132,70 @@ async def get_matching_results(job_id: str) -> list[CandidateResult]:
             detail=f"No results found for job {job_id}.",
         )
     return [CandidateResult(**r) for r in _results[job_id]]
+
+PARSING_SYSTEM_PROMPT = """You are an expert AI recruitment assistant.
+Extract structured details from the following Job Description text.
+
+Return ONLY a JSON object with this exact structure:
+{
+  "title": "<Job Title>",
+  "client_name": "<Company/Client Name or null>",
+  "location": "<Location e.g. Cape Town, South Africa or null>",
+  "sector": "<Industry Sector e.g. IT, Engineering, Finance, Medical, Mining, Supply Chain, Hospitality>",
+  "salary_range": "<Salary range or null>",
+  "description": "<Detailed job summary>",
+  "requirements": "<Detailed job requirements>",
+  "required_skills": ["<skill1>", "<skill2>", ...]
+}"""
+
+class ParseJobRequest(BaseModel):
+    text: str
+
+class ParsedJobResponse(BaseModel):
+    title: str
+    client_name: Optional[str] = None
+    location: Optional[str] = None
+    sector: Optional[str] = "IT"
+    salary_range: Optional[str] = None
+    description: str
+    requirements: str
+    required_skills: list[str] = []
+
+@router.post("/parse-job", response_model=ParsedJobResponse)
+async def parse_job_description(
+    body: ParseJobRequest,
+    llm: LLMProvider = Depends(get_llm_provider),
+):
+    """Use DeepSeek to parse a raw job description text into a structured mandate."""
+    prompt = f"Extract structured job mandate details from the following text:\n\n{body.text}"
+    try:
+        response = await llm._primary_client.chat.completions.create(
+            model=llm._primary_model,
+            messages=[
+                {"role": "system", "content": PARSING_SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.1,
+            max_tokens=1024,
+        )
+        content = response.choices[0].message.content or ""
+        parsed = llm._parse_json_response(content)
+        return ParsedJobResponse(
+            title=parsed.get("title", "Job Position"),
+            client_name=parsed.get("client_name"),
+            location=parsed.get("location", "Remote"),
+            sector=parsed.get("sector", "IT"),
+            salary_range=parsed.get("salary_range"),
+            description=parsed.get("description", ""),
+            requirements=parsed.get("requirements", ""),
+            required_skills=parsed.get("required_skills", []),
+        )
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Failed to parse job description: {e}")
+        return ParsedJobResponse(
+            title="Extracted Job Mandate",
+            description=body.text[:500],
+            requirements="Please review manual entry.",
+        )

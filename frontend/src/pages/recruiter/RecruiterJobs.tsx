@@ -10,13 +10,14 @@ import {
   Work as WorkIcon, LocationOn as LocationOnIcon,
   Psychology as PsychologyIcon,
   ChevronRight as ChevronRightIcon, Business as BusinessIcon,
-  TrendingUp,
+  TrendingUp, CloudUpload as UploadIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks/useAppStore';
 import { fetchJobs, createJob, updateJob, deleteJob } from '../../store/slices/jobSlice';
 import { vectorApi } from '../../api/vector';
 import { shortlistApi } from '../../api/matching';
+import { jobApi } from '../../api/jobs';
 import type { Job, SearchResult } from '../../types';
 import { MatchExplanationModal } from '../../components/recruiter/MatchExplanationModal';
 
@@ -78,6 +79,36 @@ export const RecruiterJobs: React.FC = () => {
     setOpen(false);
     setIsEditing(false);
     setNewJob({ title: '', description: '', requirements: '', required_skills: [], location: '', sector: 'IT', status: 'OPEN', salary_range: '' });
+  };
+
+  const [isParsing, setIsParsing] = useState(false);
+
+  const handleDescriptionUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setIsParsing(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const parsedData = await jobApi.uploadDescription(formData);
+      setNewJob(prev => ({
+        ...prev,
+        title: parsedData.title || prev.title,
+        client_name: parsedData.client_name || prev.client_name,
+        location: parsedData.location || prev.location,
+        sector: parsedData.sector || prev.sector,
+        salary_range: parsedData.salary_range || prev.salary_range,
+        description: parsedData.description || prev.description,
+        requirements: parsedData.requirements || prev.requirements,
+        required_skills: parsedData.required_skills || prev.required_skills,
+      }));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to parse the job description document. Please copy/paste manually or try again.");
+    } finally {
+      setIsParsing(false);
+      event.target.value = '';
+    }
   };
   const handleShortlist = async (c: SearchResult) => {
     try {
@@ -204,6 +235,44 @@ export const RecruiterJobs: React.FC = () => {
         </Box>
         <DialogContent sx={{ p: 3 }}>
           <Stack spacing={2.5} sx={{ mt: 1 }}>
+            {!isEditing && (
+              <Box sx={{ 
+                p: 2.5, 
+                border: '2px dashed', 
+                borderColor: isParsing ? 'primary.main' : alpha('#7EC845', 0.4), 
+                borderRadius: 3, 
+                bgcolor: alpha('#7EC845', 0.03), 
+                textAlign: 'center',
+                transition: 'all 200ms ease',
+                '&:hover': { bgcolor: alpha('#7EC845', 0.06), borderColor: '#7EC845' }
+              }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main', mb: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                  <PsychologyIcon fontSize="small" /> AI MANDATE AUTO-FILL (OPTIONAL)
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2, maxWidth: 380, mx: 'auto', lineHeight: 1.4 }}>
+                  Upload a PDF or TXT job description document. Our DeepSeek AI will instantly parse all the details and pre-populate this form!
+                </Typography>
+                <input
+                  accept="application/pdf,text/plain"
+                  style={{ display: 'none' }}
+                  id="job-description-upload"
+                  type="file"
+                  onChange={handleDescriptionUpload}
+                  disabled={isParsing}
+                />
+                <label htmlFor="job-description-upload">
+                  <Button
+                    variant="contained"
+                    component="span"
+                    disabled={isParsing}
+                    startIcon={isParsing ? <CircularProgress size={16} color="inherit" /> : <UploadIcon />}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    {isParsing ? 'Parsing Document...' : 'Upload Job Document'}
+                  </Button>
+                </label>
+              </Box>
+            )}
             <TextField label="Job Title" fullWidth placeholder="e.g. Senior Python Developer" value={newJob.title} onChange={e => setNewJob({ ...newJob, title: e.target.value })} />
             <TextField label="Client / Company" fullWidth placeholder="e.g. TechFlow Solutions" value={newJob.client_name || ''} onChange={e => setNewJob({ ...newJob, client_name: e.target.value })} />
             <Grid container spacing={2}>

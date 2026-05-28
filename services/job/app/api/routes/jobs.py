@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
 from app.infrastructure.database.engine import get_db
@@ -151,3 +151,49 @@ async def delete_job(job_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     await db.delete(job)
     await db.commit()
     return None
+
+@router.post("/upload-description")
+async def upload_job_description(file: UploadFile = File(...)):
+    """Accepts a job description file (PDF, TXT, etc.), extracts text, and parses it via the matching LLM service."""
+    # 1. Read file content
+    content_bytes = await file.read()
+    filename = file.filename or ""
+    
+    # 2. Extract text from the bytes
+    text = ""
+    if filename.lower().endswith(".pdf"):
+        try:
+            import pypdf
+            import io
+            reader = pypdf.PdfReader(io.BytesIO(content_bytes))
+            text = "\n".join([page.extract_text() for page in reader.pages if page.extract_text()])
+        except Exception as e:
+            # Fallback if pypdf is not installed or errors
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"pypdf extraction failed, falling back: {e}")
+            text = content_bytes.decode("utf-8", errors="ignore")
+    else:
+        # Default decode as plain text
+        text = content_bytes.decode("utf-8", errors="ignore")
+        
+    if not text.strip():
+        raise HTTPException(status_code=400, detail="Could not extract text from the file.")
+        
+    # 3. Call matching service to parse it via DeepSeek
+    import urllib.request
+    import json
+    try:
+        payload = {"text": text}
+        # In Docker network, matching service is at http://matching:8000
+        req = urllib.request.Request(
+            "http://matching:8000/api/matching/parse-job",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req) as f:
+            resp_data = json.loads(f.read().decode())
+            return resp_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse job description using AI: {e}")

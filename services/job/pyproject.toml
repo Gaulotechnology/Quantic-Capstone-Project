@@ -13,6 +13,7 @@ dependencies = [
   "apscheduler>=3.10",
   "pydantic-settings>=2.0",
   "tumaini-shared",
+  "pypdf>=4.0.0",
 ]
 
 [tool.uv.sources]
