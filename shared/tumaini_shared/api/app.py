@@ -41,15 +41,31 @@ def create_app(
     # ---------------------------------------------------------------------------
     # CORS (Cross-Origin Resource Sharing)
     # ---------------------------------------------------------------------------
-    # Allow all origins and all ports for local development
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origin_regex=r"https?://.*",  # Permissive regex for all ports/origins
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-        expose_headers=["*"],
-    )
+    import os
+    allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
+    allowed_origins = [o.strip() for o in allowed_origins if o.strip()]
+    
+    # If ALLOWED_ORIGINS is not set, we default to a restrictive local-only regex in production
+    # but keep the permissive one if specifically requested for development.
+    origin_regex = os.getenv("ALLOWED_ORIGIN_REGEX")
+    
+    if not allowed_origins and not origin_regex:
+        # Default for local development
+        origin_regex = r"https?://(localhost|127\.0\.0\.1)(:\d+)?"
+    
+    middleware_kwargs = {
+        "allow_credentials": True,
+        "allow_methods": ["*"],
+        "allow_headers": ["*"],
+        "expose_headers": ["*"],
+    }
+    
+    if allowed_origins:
+        middleware_kwargs["allow_origins"] = allowed_origins
+    else:
+        middleware_kwargs["allow_origin_regex"] = origin_regex
+
+    app.add_middleware(CORSMiddleware, **middleware_kwargs)
 
     @app.get("/docs", include_in_schema=False, response_class=HTMLResponse)
     async def scalar_docs() -> HTMLResponse:

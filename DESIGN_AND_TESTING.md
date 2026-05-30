@@ -130,11 +130,18 @@ As a South African recruitment platform, compliance with the **Protection of Per
 - **Regional Deployment**: Deployed on **Hetzner Cloud** (South African/Falkenstein region). This ensures that candidate PII (Personally Identifiable Information) never leaves the legal jurisdiction of South Africa or EU-Equivalent regions.
 - **Zero-Persistence Gateway**: The Caddy proxy does not log request bodies, ensuring that passwords or CV text are not stored in unencrypted server logs.
 
-### **4.2 Authentication Flow**
+### **4.2 Authentication & Brute-Force Protection**
 We implemented a **Double-Token JWT Strategy**:
 1. **Access Token**: Short-lived (15 mins), stored in memory.
 2. **Refresh Token**: Long-lived (7 days), stored in an `HttpOnly` cookie.
 3. **Revocation**: A **Redis-backed Blacklist** allows administrators to immediately revoke all tokens for a compromised account.
+4. **Rate Limiting**: We use **SlowAPI** to prevent brute-force attacks on the `/login` (10/min) and `/register` (5/hr) endpoints.
+
+### **4.3 CORS Hardening**
+The CORS policy is environment-aware:
+- **Production**: Restricted to specific origins via the `ALLOWED_ORIGINS` environment variable.
+- **Development**: Defaults to `localhost` and `127.0.0.1` with port wildcards.
+- **Support**: `allow_credentials=True` is enabled for secure session management across microservices.
 
 ---
 

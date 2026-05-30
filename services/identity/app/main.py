@@ -9,6 +9,7 @@ from slowapi.util import get_remote_address
 
 from tumaini_shared.api.app import create_app
 
+from app.limiter import limiter
 from app.api.routes import auth, password_reset
 from app.infrastructure.cache.redis_client import close_redis, get_redis
 
@@ -62,12 +63,13 @@ async def _seed_admin():
             if existing:
                 logger.info("Admin user already exists — skipping seed.")
                 return
-            await auth_service.register(
+            user = await auth_service.register(
                 email="admin@tumaini.ai",
                 plain_password="AdminPassword123!",
                 full_name="System Administrator",
                 role=Role.ADMIN,
             )
+
             await session.commit()
             logger.info("Admin user seeded: admin@tumaini.ai")
     except Exception as e:
@@ -99,7 +101,6 @@ app.router.lifespan_context = lifespan
 # ---------------------------------------------------------------------------
 # Rate limiting (slowapi)
 # ---------------------------------------------------------------------------
-limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 

@@ -19,11 +19,15 @@ from app.domain.user.exceptions import (
     UserNotFoundError,
 )
 
+from app.limiter import limiter
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/hour")
 async def register(
+    request: Request,
     body: RegisterRequest,
     auth: AuthService = Depends(get_auth_service),
 ) -> RegisterResponse:
@@ -44,7 +48,9 @@ async def register(
 
 
 @router.post("/login", response_model=LoginResponse)
+@limiter.limit("10/minute")
 async def login(
+    request: Request,
     body: LoginRequest,
     auth: AuthService = Depends(get_auth_service),
 ) -> LoginResponse:
