@@ -76,6 +76,9 @@ export const CandidateSearch: React.FC = () => {
           sector: job?.sector || undefined,
           location: job?.location || undefined,
         }));
+      } else {
+        // No jobId — still load all candidates so the page is never empty
+        dispatch(searchCandidates({ limit: 10, page: 0 }));
       }
     };
     init();

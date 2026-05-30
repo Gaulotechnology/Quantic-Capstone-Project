@@ -268,7 +268,7 @@ services:
     build:
       context: ./frontend
       args:
-        - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:8001}
+        - VITE_API_BASE_URL=
     ports:
       - "3009:80"
     networks:

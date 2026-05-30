@@ -1,5 +1,9 @@
 from tumaini_shared.api.app import create_app
 from fastapi import UploadFile, File
+import pdfplumber
+import docx
+import spacy
+import io
 from typing import List
 import datetime
 import urllib.request
@@ -67,62 +71,85 @@ def save_to_vector_db(cv_data: dict):
         logger.warning(f"Vector index skipped (service may be down): {e}")
 
 
-def _build_cv(cv_id: str, file_name: str) -> dict:
-    """Build a processed CV record with realistic extracted data.
+def extract_text_from_pdf(file_bytes):
+    with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
+        return "\n".join(page.extract_text() or "" for page in pdf.pages)
 
-    In production this would come from spaCy NER + PDF text extraction.
-    The extracted_data preserves all candidate details — nothing is lost.
-    """
-    name = file_name.split(".")[0].replace("_", " ").title()
+def extract_text_from_docx(file_bytes):
+    doc = docx.Document(io.BytesIO(file_bytes))
+    return "\n".join([p.text for p in doc.paragraphs])
+
+def extract_entities(text, nlp):
+    doc = nlp(text)
+    name = None
+    skills = []
+    location = None
+    for ent in doc.ents:
+        if ent.label_ == "PERSON" and not name:
+            name = ent.text
+        if ent.label_ == "GPE" and not location:
+            location = ent.text
+    # Dummy skill extraction: look for known tech keywords
+    tech_keywords = ["python", "sql", "react", "docker", "bi", "data", "analyst", "developer", "governance"]
+    for token in doc:
+        if token.text.lower() in tech_keywords and token.text not in skills:
+            skills.append(token.text)
+    return {
+        "name": name or "Unknown",
+        "skills": skills or [],
+        "location": location or "Unknown",
+        # Placeholders for demo
+        "email": "unknown@example.com",
+        "phone": "N/A",
+        "work_experiences": [],
+        "education": []
+    }
+
+def _build_cv(cv_id: str, file_name: str, file_bytes: bytes = None) -> dict:
+    """Build a processed CV record with real extracted data and store original file."""
+    nlp = spacy.load("en_core_web_sm")
+    text = ""
+    if file_bytes:
+        if file_name.lower().endswith(".pdf"):
+            text = extract_text_from_pdf(file_bytes)
+        elif file_name.lower().endswith(".docx"):
+            text = extract_text_from_docx(file_bytes)
+        else:
+            text = ""
+    extracted = extract_entities(text, nlp) if text else {}
     cv = {
         "id": cv_id,
         "candidate_id": "cand-" + cv_id,
         "file_name": file_name,
         "status": "PROCESSED",
         "uploaded_at": datetime.datetime.now().isoformat(),
-        "extracted_data": {
-            "name": name,
-            "email": f"{name.lower().replace(' ', '.')}@example.com",
-            "phone": "+27 12 345 6789",
-            "location": "Johannesburg, SA",
-            "skills": ["Python", "FastAPI", "React", "Docker", "PostgreSQL"],
-            "work_experiences": [
-                {
-                    "company": "Tech Solutions Ltd",
-                    "title": "Senior Developer",
-                    "start_date": "2020-01-01",
-                    "end_date": None,
-                    "description": "Led the backend team in developing scalable microservices with FastAPI and PostgreSQL. Deployed on AWS with Docker and Kubernetes.",
-                },
-                {
-                    "company": "Digital Innovations",
-                    "title": "Software Engineer",
-                    "start_date": "2017-03-01",
-                    "end_date": "2019-12-31",
-                    "description": "Built React frontends and Python backends for enterprise clients. Introduced CI/CD pipelines.",
-                },
-            ],
-            "education": [
-                {
-                    "institution": "University of Cape Town",
-                    "qualification": "BSc Computer Science",
-                    "field": "Computer Science",
-                    "year": "2016",
-                }
-            ],
-        },
+        "extracted_data": extracted,
+        "original_file_bytes": file_bytes if file_bytes else b"",
     }
-    # Index in vector DB for semantic search
     save_to_vector_db(cv)
-    # Persist in memory so the frontend table populates
     _cvs.append(cv)
     return cv
+
+@app.get("/api/cvs/{cv_id}/download", tags=["cvs"])
+async def download_cv(cv_id: str):
+    """Download the original uploaded CV file."""
+    for cv in _cvs:
+        if cv["id"] == cv_id and cv.get("original_file_bytes"):
+            from fastapi.responses import StreamingResponse
+            import mimetypes
+            ext = cv["file_name"].split(".")[-1].lower()
+            mime = mimetypes.types_map.get(f'.{ext}', 'application/octet-stream')
+            return StreamingResponse(io.BytesIO(cv["original_file_bytes"]),
+                                    media_type=mime,
+                                    headers={"Content-Disposition": f"attachment; filename={cv['file_name']}"})
+    return {"error": "CV not found or file missing"}
 
 
 @app.post("/api/cvs/upload", tags=["cvs"])
 async def upload_cv(file: UploadFile = File(...)) -> dict:
     """Upload a single CV. Extracts text and indexes for search."""
-    return _build_cv(f"cv-{len(_cvs)+1:03d}", file.filename or "upload.pdf")
+    file_bytes = await file.read()
+    return _build_cv(f"cv-{len(_cvs)+1:03d}", file.filename or "upload.pdf", file_bytes)
 
 
 @app.post("/api/cvs/bulk-upload", tags=["cvs"])
@@ -130,7 +157,8 @@ async def bulk_upload_cvs(files: List[UploadFile] = File(...)) -> list:
     """Bulk upload multiple CVs. Each is extracted, indexed, and stored."""
     result = []
     for f in files:
-        result.append(_build_cv(f"cv-{len(_cvs)+1:03d}", f.filename or "upload.pdf"))
+        file_bytes = await f.read()
+        result.append(_build_cv(f"cv-{len(_cvs)+1:03d}", f.filename or "upload.pdf", file_bytes))
     return result
 
 @app.delete("/api/cvs/{cv_id}", tags=["cvs"])

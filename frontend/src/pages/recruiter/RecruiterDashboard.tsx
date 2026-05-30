@@ -21,6 +21,7 @@ import { useAppSelector, useAppDispatch } from '../../hooks/useAppStore';
 import { fetchJobs } from '../../store/slices/jobSlice';
 import { cvApi } from '../../api/cv';
 import { shortlistApi } from '../../api/matching';
+import type { CV } from '../../types';
 
 const statGradients: Record<string, [string, string]> = {
   'Active Jobs': ['#7EC845', '#FF9A6C'],
@@ -35,6 +36,7 @@ export const RecruiterDashboard: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth);
   const { jobs } = useAppSelector((state) => state.jobs);
   const [counts, setCounts] = useState({ candidates: '0', shortlisted: '0' });
+  const [recentCvs, setRecentCvs] = useState<CV[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -49,6 +51,7 @@ export const RecruiterDashboard: React.FC = () => {
           candidates: (cvs || []).length.toString(),
           shortlisted: (shortlists || []).reduce((acc, s) => acc + (s.candidates?.length || 0), 0).toString(),
         });
+        setRecentCvs(cvs || []);
       } catch {
         // silent
       } finally {
@@ -140,17 +143,48 @@ export const RecruiterDashboard: React.FC = () => {
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
                 Recent Activity
               </Typography>
-              <Box sx={{ py: 4, textAlign: 'center' }}>
-                <Typography variant="body2" color="text.secondary">
-                  No recent activity found. Start by posting a job or searching for candidates.
-                </Typography>
-              </Box>
+              {jobs.length > 0 ? (
+                <Box>
+                  {jobs.slice(0, 3).map(job => (
+                    <Box key={job.id} sx={{ mb: 2 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{job.title}</Typography>
+                      <Typography variant="body2" color="text.secondary">Status: {job.status}</Typography>
+                    </Box>
+                  ))}
+                </Box>
+              ) : (
+                <Box sx={{ py: 4, textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    No recent activity found. Start by posting a job or searching for candidates.
+                  </Typography>
+                </Box>
+              )}
             </CardContent>
           </Card>
         </Grid>
 
         <Grid size={{ xs: 12, md: 4 }}>
           <Stack spacing={3}>
+            <Card>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, mb: 2.5 }}>
+                  Recently Uploaded CVs
+                </Typography>
+                {recentCvs.length > 0 ? (
+                  <Box>
+                    {/* Show up to 3 recent CVs */}
+                    {recentCvs.slice(0, 3).map((cv, idx) => (
+                      <Box key={cv.id || idx} sx={{ mb: 1.5 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{cv.file_name}</Typography>
+                        <Typography variant="body2" color="text.secondary">Uploaded: {cv.uploaded_at ? new Date(cv.uploaded_at).toLocaleDateString() : ''}</Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">No CVs uploaded yet.</Typography>
+                )}
+              </CardContent>
+            </Card>
             <Card>
               <CardContent sx={{ p: 3 }}>
                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 2.5 }}>
