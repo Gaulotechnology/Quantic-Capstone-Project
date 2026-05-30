@@ -1,7 +1,14 @@
 import axios from 'axios';
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+let API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+
+// Prevent common misconfiguration where VITE_API_BASE_URL is set to the identity service (port 8001).
+// In our architecture, the frontend should either use relative paths (going through the Nginx/Vite proxy)
+// or point to a unified gateway. Port 8001 is specific to the identity service.
+if (API_BASE_URL.includes(':8001')) {
+  API_BASE_URL = '';
+}
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,

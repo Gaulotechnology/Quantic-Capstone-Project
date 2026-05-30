@@ -1,122 +1,202 @@
-from tumaini_shared.api.app import create_app
-from fastapi import UploadFile, File
-import pdfplumber
-import docx
-import spacy
-import io
-from typing import List
 import datetime
-import urllib.request
+import io
 import json
 import logging
+import urllib.request
+from typing import List, Optional
+
+import docx
+import pdfplumber
+import spacy
+from fastapi import File, UploadFile
+from openai import AsyncOpenAI
+from pydantic import BaseModel
+
+from tumaini_shared.api.app import create_app
+from app.config import get_settings
 
 logger = logging.getLogger(__name__)
+settings = get_settings()
 
 app = create_app(
     title="CV Service",
     description=(
-        "Handles CV file upload (PDF, DOCX, TXT) to AWS S3, "
-        "text extraction with OCR fallback, and NER-based candidate information parsing."
+        "Handles CV file upload (PDF, DOCX, TXT), "
+        "text extraction, and AI-powered candidate information parsing using DeepSeek."
     ),
 )
 
-VECTOR_SERVICE_URL = "http://vector:8000/api/vectors/add"
+# ── LLM Client ─────────────────────────────────────────────────────────
+llm_client = AsyncOpenAI(
+    api_key=settings.OPENAI_API_KEY,
+    base_url=settings.OPENAI_BASE_URL,
+)
+
+# ── Models ─────────────────────────────────────────────────────────────
+class WorkExperience(BaseModel):
+    title: str
+    company: str
+    duration: str
+    description: str
+
+class Education(BaseModel):
+    degree: str
+    institution: str
+    year: str
+
+class CVExtractedData(BaseModel):
+    name: str
+    email: str
+    phone: str
+    location: str
+    skills: List[str]
+    work_experiences: List[WorkExperience]
+    education: List[Education]
 
 # ── In-memory store ────────────────────────────────────────────────────
 _cvs: list[dict] = []
-
 
 @app.get("/health", tags=["ops"])
 async def health() -> dict:
     return {"status": "ok", "service": "cv"}
 
-
 @app.get("/api/cvs/me", tags=["cvs"])
 async def get_my_cvs() -> list:
-    """Return all CVs uploaded in this session."""
     return _cvs
-
 
 @app.get("/api/cvs/{cv_id}", tags=["cvs"])
 async def get_cv(cv_id: str) -> dict:
-    """Return a single CV by ID."""
     for cv in _cvs:
         if cv["id"] == cv_id:
             return cv
     return {"id": cv_id, "file_name": "unknown", "status": "NOT_FOUND"}
 
-
-def save_to_vector_db(cv_data: dict):
+async def save_to_vector_db(cv_data: dict):
     """Send the extracted CV data to the vector service for semantic indexing."""
     try:
+        extracted = cv_data["extracted_data"]
+        experience_text = ""
+        if extracted.get("work_experiences"):
+            exp = extracted["work_experiences"][0]
+            experience_text = f"{exp.get('title')} at {exp.get('company')}: {exp.get('description')}"
+
         payload = {
             "candidate_id": cv_data["candidate_id"],
-            "name": cv_data["extracted_data"]["name"],
-            "skills": cv_data["extracted_data"]["skills"],
-            "experience": cv_data["extracted_data"]["work_experiences"][0]["description"] if cv_data["extracted_data"]["work_experiences"] else "No experience details.",
+            "name": extracted.get("name", "Unknown"),
+            "skills": extracted.get("skills", []),
+            "experience": experience_text or "No experience details.",
             "sector": "General",
-            "location": cv_data["extracted_data"]["location"],
+            "location": extracted.get("location", "Unknown"),
             "years": 5,
         }
+        
         req = urllib.request.Request(
-            VECTOR_SERVICE_URL,
+            settings.VECTOR_SERVICE_URL,
             data=json.dumps(payload).encode("utf-8"),
             headers={"Content-Type": "application/json"},
             method="POST",
         )
+        # Using a simple synchronous call for now as per existing pattern, 
+        # but in a real app this should be async httpx
         with urllib.request.urlopen(req) as f:
             pass
         logger.info(f"Indexed {cv_data['candidate_id']} in vector DB")
     except Exception as e:
-        logger.warning(f"Vector index skipped (service may be down): {e}")
+        logger.warning(f"Vector index skipped: {e}")
 
-
-def extract_text_from_pdf(file_bytes):
+def extract_text_from_pdf(file_bytes: bytes) -> str:
     with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
         return "\n".join(page.extract_text() or "" for page in pdf.pages)
 
-def extract_text_from_docx(file_bytes):
+def extract_text_from_docx(file_bytes: bytes) -> str:
     doc = docx.Document(io.BytesIO(file_bytes))
     return "\n".join([p.text for p in doc.paragraphs])
 
-def extract_entities(text, nlp):
-    doc = nlp(text)
-    name = None
-    skills = []
-    location = None
-    for ent in doc.ents:
-        if ent.label_ == "PERSON" and not name:
-            name = ent.text
-        if ent.label_ == "GPE" and not location:
-            location = ent.text
-    # Dummy skill extraction: look for known tech keywords
-    tech_keywords = ["python", "sql", "react", "docker", "bi", "data", "analyst", "developer", "governance"]
-    for token in doc:
-        if token.text.lower() in tech_keywords and token.text not in skills:
-            skills.append(token.text)
-    return {
-        "name": name or "Unknown",
-        "skills": skills or [],
-        "location": location or "Unknown",
-        # Placeholders for demo
-        "email": "unknown@example.com",
-        "phone": "N/A",
-        "work_experiences": [],
-        "education": []
-    }
+CV_PARSING_PROMPT = """You are an expert AI recruitment assistant.
+Extract structured details from the following CV/Resume text.
 
-def _build_cv(cv_id: str, file_name: str, file_bytes: bytes = None) -> dict:
-    """Build a processed CV record with real extracted data and store original file."""
-    nlp = spacy.load("en_core_web_sm")
+Return ONLY a JSON object with this exact structure:
+{
+  "name": "<Full Name>",
+  "email": "<Email Address>",
+  "phone": "<Phone Number>",
+  "location": "<City, Country>",
+  "skills": ["<skill1>", "<skill2>", ...],
+  "work_experiences": [
+    {
+      "title": "<Job Title>",
+      "company": "<Company Name>",
+      "duration": "<Dates>",
+      "description": "<Brief summary of responsibilities>"
+    }
+  ],
+  "education": [
+    {
+      "degree": "<Degree Name>",
+      "institution": "<University/School>",
+      "year": "<Graduation Year>"
+    }
+  ]
+}"""
+
+async def ai_extract_entities(text: str) -> dict:
+    """Use DeepSeek to extract structured entities from CV text."""
+    try:
+        response = await llm_client.chat.completions.create(
+            model=settings.LLM_MODEL,
+            messages=[
+                {"role": "system", "content": CV_PARSING_PROMPT},
+                {"role": "user", "content": f"Extract details from this CV:\n\n{text}"},
+            ],
+            temperature=0.1,
+            response_format={"type": "json_object"}
+        )
+        content = response.choices[0].message.content
+        return json.loads(content)
+    except Exception as e:
+        logger.error(f"AI Extraction failed: {e}")
+        # Fallback to empty structure
+        return {
+            "name": "Unknown",
+            "email": "unknown@example.com",
+            "phone": "N/A",
+            "location": "Unknown",
+            "skills": [],
+            "work_experiences": [],
+            "education": []
+        }
+
+async def _build_cv(cv_id: str, file_name: str, file_bytes: bytes) -> dict:
+    """Build a processed CV record with AI-extracted data."""
     text = ""
-    if file_bytes:
-        if file_name.lower().endswith(".pdf"):
+    if file_name.lower().endswith(".pdf"):
+        try:
             text = extract_text_from_pdf(file_bytes)
-        elif file_name.lower().endswith(".docx"):
+        except Exception as e:
+            logger.error(f"PDF extraction failed: {e}")
+            text = file_bytes.decode("utf-8", errors="ignore")
+    elif file_name.lower().endswith(".docx"):
+        try:
             text = extract_text_from_docx(file_bytes)
-        else:
-            text = ""
-    extracted = extract_entities(text, nlp) if text else {}
+        except Exception as e:
+            logger.error(f"DOCX extraction failed: {e}")
+            text = file_bytes.decode("utf-8", errors="ignore")
+    else:
+        text = file_bytes.decode("utf-8", errors="ignore")
+
+    if not text.strip():
+        extracted = {
+            "name": file_name.split(".")[0],
+            "email": "unknown@example.com",
+            "phone": "N/A",
+            "location": "Unknown",
+            "skills": [],
+            "work_experiences": [],
+            "education": []
+        }
+    else:
+        extracted = await ai_extract_entities(text)
+
     cv = {
         "id": cv_id,
         "candidate_id": "cand-" + cv_id,
@@ -124,61 +204,36 @@ def _build_cv(cv_id: str, file_name: str, file_bytes: bytes = None) -> dict:
         "status": "PROCESSED",
         "uploaded_at": datetime.datetime.now().isoformat(),
         "extracted_data": extracted,
-        "original_file_bytes": file_bytes if file_bytes else b"",
     }
-    save_to_vector_db(cv)
+    
+    await save_to_vector_db(cv)
     _cvs.append(cv)
     return cv
 
-@app.get("/api/cvs/{cv_id}/download", tags=["cvs"])
-async def download_cv(cv_id: str):
-    """Download the original uploaded CV file."""
-    for cv in _cvs:
-        if cv["id"] == cv_id and cv.get("original_file_bytes"):
-            from fastapi.responses import StreamingResponse
-            import mimetypes
-            ext = cv["file_name"].split(".")[-1].lower()
-            mime = mimetypes.types_map.get(f'.{ext}', 'application/octet-stream')
-            return StreamingResponse(io.BytesIO(cv["original_file_bytes"]),
-                                    media_type=mime,
-                                    headers={"Content-Disposition": f"attachment; filename={cv['file_name']}"})
-    return {"error": "CV not found or file missing"}
-
-
 @app.post("/api/cvs/upload", tags=["cvs"])
 async def upload_cv(file: UploadFile = File(...)) -> dict:
-    """Upload a single CV. Extracts text and indexes for search."""
     file_bytes = await file.read()
-    return _build_cv(f"cv-{len(_cvs)+1:03d}", file.filename or "upload.pdf", file_bytes)
-
+    cv_id = f"cv-{len(_cvs)+1:03d}"
+    return await _build_cv(cv_id, file.filename or "upload.pdf", file_bytes)
 
 @app.post("/api/cvs/bulk-upload", tags=["cvs"])
 async def bulk_upload_cvs(files: List[UploadFile] = File(...)) -> list:
-    """Bulk upload multiple CVs. Each is extracted, indexed, and stored."""
     result = []
     for f in files:
         file_bytes = await f.read()
-        result.append(_build_cv(f"cv-{len(_cvs)+1:03d}", f.filename or "upload.pdf", file_bytes))
+        cv_id = f"cv-{len(_cvs)+1:03d}"
+        result.append(await _build_cv(cv_id, f.filename or "upload.pdf", file_bytes))
     return result
 
 @app.delete("/api/cvs/{cv_id}", tags=["cvs"])
 async def delete_cv(cv_id: str) -> dict:
-    """Delete a CV by ID. Also removes it from the vector service."""
     global _cvs
-    # 1. Find the CV
-    cv_to_delete = None
-    for cv in _cvs:
-        if cv["id"] == cv_id:
-            cv_to_delete = cv
-            break
-            
+    cv_to_delete = next((cv for cv in _cvs if cv["id"] == cv_id), None)
     if not cv_to_delete:
         return {"status": "error", "message": "CV not found"}
         
-    # 2. Delete candidate from vector service (cand-cv_id)
     try:
         candidate_id = cv_to_delete["candidate_id"]
-        # In Docker network, vector is accessible at http://vector:8000
         req = urllib.request.Request(
             f"http://vector:8000/api/vectors/{candidate_id}",
             method="DELETE"
@@ -189,7 +244,5 @@ async def delete_cv(cv_id: str) -> dict:
     except Exception as e:
         logger.warning(f"Vector delete failed: {e}")
         
-    # 3. Remove CV from local in-memory list
     _cvs[:] = [cv for cv in _cvs if cv["id"] != cv_id]
-    
     return {"status": "success", "id": cv_id}

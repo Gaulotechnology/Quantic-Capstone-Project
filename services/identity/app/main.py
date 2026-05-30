@@ -17,11 +17,30 @@ logger = logging.getLogger(__name__)
 
 async def _run_migrations():
     """Run alembic migrations on startup."""
+    import os
+    from alembic.config import Config
+    from alembic import command
+    
     try:
-        from alembic.config import Config
-        from alembic import command
-        import os
-        alembic_cfg = Config(os.path.join(os.path.dirname(__file__), "..", "alembic.ini"))
+        # Resolve paths relative to this file
+        # Inside Docker: /app/services/identity/app/main.py
+        # scripts_dir should be: /app/services/identity/alembic
+        # ini_path should be: /app/services/identity/alembic.ini
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        base_dir = os.path.dirname(current_dir)
+        ini_path = os.path.join(base_dir, "alembic.ini")
+        scripts_dir = os.path.join(base_dir, "alembic")
+        
+        logger.info(f"Identity service migration: checking paths...")
+        logger.info(f" - Ini path: {ini_path} (Exists: {os.path.exists(ini_path)})")
+        logger.info(f" - Scripts dir: {scripts_dir} (Exists: {os.path.exists(scripts_dir)})")
+        
+        alembic_cfg = Config(ini_path)
+        alembic_cfg.set_main_option("script_location", scripts_dir)
+        
+        # command.upgrade is synchronous. In an async context, we should ideally
+        # run it in a thread, but for simple startup it's usually okay to block
+        # unless it hangs.
         command.upgrade(alembic_cfg, "head")
         logger.info("Database migrations applied successfully.")
     except Exception as e:

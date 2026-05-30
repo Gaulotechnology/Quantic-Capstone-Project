@@ -49,4 +49,26 @@ async def run_migrations_online() -> None:
 if context.is_offline_mode():
     run_migrations_offline()
 else:
-    asyncio.run(run_migrations_online())
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # No running loop, safe to use asyncio.run
+        asyncio.run(run_migrations_online())
+    else:
+        # Already in a loop. We need to run the coroutine.
+        # However, command.upgrade is sync and won't await this.
+        # This is why we get the warning. 
+        # A common hack is to use a separate thread or just let the 
+        # startup task handle it.
+        if loop.is_running():
+            # In FastAPI lifespan, the loop is running.
+            # We can use nest_asyncio or just accept that we shouldn't 
+            # be calling sync alembic commands from async lifespan.
+            import threading
+            def run_in_thread():
+                asyncio.run(run_migrations_online())
+            t = threading.Thread(target=run_in_thread)
+            t.start()
+            t.join()
+        else:
+            asyncio.run(run_migrations_online())

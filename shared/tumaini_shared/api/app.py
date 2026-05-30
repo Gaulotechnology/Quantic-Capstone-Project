@@ -41,12 +41,14 @@ def create_app(
     # ---------------------------------------------------------------------------
     # CORS (Cross-Origin Resource Sharing)
     # ---------------------------------------------------------------------------
+    # Allow all origins and all ports for local development
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=False,
+        allow_origin_regex=r"https?://.*",  # Permissive regex for all ports/origins
+        allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["*"],
     )
 
     @app.get("/docs", include_in_schema=False, response_class=HTMLResponse)
