@@ -61,9 +61,10 @@ jobs:
         username: root
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
+          git config --global --add safe.directory /root/quantic_final_project-main
           cd /root/quantic_final_project-main
           # Fetch and reset to ensure exact match with remote main
           git fetch origin main
           git reset --hard origin/main
           # Redeploy all containers
-          sudo ./deploy/launch.sh
+          bash deploy/launch.sh
