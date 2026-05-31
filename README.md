@@ -130,9 +130,8 @@ The project features a fully automated **GitHub Actions** pipeline (`.github/wor
     *   **Frontend**: Automatically builds the React application to catch compilation errors.
     *   **Backend**: Runs **Ruff** for linting and executes the full suite of **Pytest** unit tests for the shared kernel and microservices.
 2.  **Continuous Deployment (CD)**:
-    *   Triggered automatically ONLY when code is pushed to the `main` branch and all CI tests have passed.
-    *   Connects to the Hetzner production server via SSH.
-    *   Synchronizes the latest code and executes `./deploy/launch.sh` to rebuild and restart the production containers.
+    *   **Strict Gating**: Triggered automatically **ONLY** when code is pushed to the `main` branch and **ALL** CI tests (linting, backend unit tests, frontend build) have successfully passed.
+    *   **Automated Release**: Connects to the Hetzner production server via SSH, synchronizes the latest verified code, and executes `./deploy/launch.sh` to update the live system without manual intervention.
 
 > **Note**: For CD to function, the following GitHub Secrets must be configured in the repository: `SERVER_IP` and `SSH_PRIVATE_KEY`.
 
